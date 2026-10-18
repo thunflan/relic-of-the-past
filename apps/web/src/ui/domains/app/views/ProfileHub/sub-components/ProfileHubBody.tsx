@@ -48,13 +48,16 @@ const ProfileHubBody = (props: ProfileHubBodyProps) => {
   // In the field, or holding a query: no tab is current and the pane belongs to the search.
   const searching = searchFocused || query.trim() !== '';
 
-  // Mobile options have their own tab, listed last and only on mobile.
+  // Mobile options have their own tab, listed on mobile or touch-capable devices.
+  const hasTouch =
+    info.formFactor === 'mobile' ||
+    (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
   const groups = useMemo(
     () => PROFILE_HUB_NAV_GROUPS.map((group) => ({
       ...group,
-      tabs: group.tabs.filter((tab) => !PROFILE_HUB_TABS[tab].mobileOnly || info.formFactor === 'mobile'),
+      tabs: group.tabs.filter((tab) => !PROFILE_HUB_TABS[tab].mobileOnly || hasTouch),
     })),
-    [info.formFactor],
+    [hasTouch],
   );
   const navConfig = useMemo<SectionNavConfig>(() => ({
     home: navItem('home'),

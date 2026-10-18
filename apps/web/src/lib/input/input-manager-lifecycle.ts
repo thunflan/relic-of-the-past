@@ -52,7 +52,9 @@ const startInput = (m: InputManager): void => {
     m.currentHidStates.delete(_deviceKey);
     m.hidStatesDirty = true;
     m.rawDispatcher.removeDevice(_deviceKey);
-    m.pauseManager.checkControllerDisconnect(m.activeProfile, connectedGamepadKeys(m), m.devices);
+    if (!m.touchActive) {
+      m.pauseManager.checkControllerDisconnect(m.activeProfile, connectedGamepadKeys(m), m.devices);
+    }
     m.refreshDevices();
   });
 
@@ -116,6 +118,7 @@ const stopInput = (m: InputManager): void => {
   }
 
   m.keyStates.clear();
+  m.touchMask = 0;
   m.setInputFn?.(0);
 };
 

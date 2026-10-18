@@ -35,6 +35,7 @@ import { useAppMainEffects } from '@app/App/behavior/useAppMainEffects';
 import { useCapability } from '@app/platform';
 import { TitleBar } from '../TitleBar';
 import { MobileChrome } from '../MobileChrome';
+import { TouchControlsOverlay } from '../TouchControlsOverlay';
 import { SearchPalette } from '../SearchPalette';
 import type { TitleBarProps } from '../TitleBar/TitleBar.type';
 import { GameLayer } from '../GameLayer';
@@ -59,16 +60,7 @@ const AppMain = () => {
       primeLiveSettings(data.settings);
       applyNotchMode(data.settings.renderIntoNotch);
       game.setGameData(data.assetData, data.configIni);
-      display.initFromSettings({
-        windowMode: data.settings.windowMode,
-        viewportConstraint: data.settings.viewportConstraint,
-        aspectRatio: data.settings.aspectRatio,
-        displayPerfInTitle: data.settings.displayPerfInTitle,
-        overworldEdgeEffect: data.settings.overworldEdgeEffect,
-        postProcessingShadows: data.settings.postProcessingShadows,
-        startFullscreen: data.settings.startFullscreen,
-        pixelPerfect: data.settings.pixelPerfect,
-      });
+      display.initFromSettings(data.settings);
       audio.initFromSettings(data.settings.masterVolume);
       saveState.initFromSettings(data.settings.enhancedSaveSlotShortcut, data.settings.saveHoldDuration);
     },
@@ -195,6 +187,8 @@ const AppMain = () => {
           gameRunning={game.isRunning}
           onOpenReport={() => setShowBugReportDialog(true)}
         />
+
+        <TouchControlsOverlay gameRunning={game.isRunning} pageOpen={nav.activePage !== 'none'} />
       </Box>
 
       <AppDialogs

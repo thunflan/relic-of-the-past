@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebView;
 
@@ -38,6 +39,10 @@ public class MainActivity extends BridgeActivity {
             webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
             // Black, not the default grey, behind the WebView (cutout, transient bars).
             webView.setBackgroundColor(Color.BLACK);
+            webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+            webView.setHapticFeedbackEnabled(false);
+            webView.setOnLongClickListener(v -> true);
+            webView.setLongClickable(false);
         }
 
         // Window black and system bars transparent, so the cutout and bar regions

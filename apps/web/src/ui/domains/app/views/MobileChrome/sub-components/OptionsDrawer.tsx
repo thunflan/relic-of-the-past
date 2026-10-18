@@ -1,5 +1,6 @@
 /* @layer renderer-components @kind component */
 import { Box, Button, Text, Image } from '@ds/primitives';
+import { useTouchControlsStore } from '@app/stores/touch-controls-store';
 import type { DrawerMenuItem } from '../MobileChrome.type';
 
 interface OptionsDrawerProps {
@@ -8,6 +9,8 @@ interface OptionsDrawerProps {
   showFps: boolean;
   isMuted: boolean;
   onToggleMute?: () => void;
+  onCloseDrawer?: () => void;
+  onClosePage?: () => void;
 }
 
 const renderItem = (item: DrawerMenuItem) => {
@@ -29,7 +32,17 @@ const renderItem = (item: DrawerMenuItem) => {
 };
 
 const OptionsDrawer = (props: OptionsDrawerProps) => {
-  const { items, fps, showFps, isMuted, onToggleMute } = props;
+  const { items, fps, showFps, isMuted, onToggleMute, onCloseDrawer, onClosePage } = props;
+  const touchEnabled = useTouchControlsStore((s) => s.settings.enabled);
+  const updateTouchSettings = useTouchControlsStore((s) => s.updateSettings);
+  const setEditingTouch = useTouchControlsStore((s) => s.setEditing);
+
+  const handleEditLayout = () => {
+    updateTouchSettings({ enabled: true });
+    onCloseDrawer?.();
+    onClosePage?.();
+    setEditingTouch(true);
+  };
 
   return (
     <Box className="options-drawer">
@@ -42,6 +55,19 @@ const OptionsDrawer = (props: OptionsDrawerProps) => {
         <Button variant="bare" className="options-drawer__item" onClick={onToggleMute}>
           <Text className="options-drawer__icon">{isMuted ? '🔇' : '🔊'}</Text>
           <Text className="options-drawer__label">{isMuted ? 'Unmute' : 'Mute'}</Text>
+        </Button>
+        <Button
+          variant="bare"
+          className="options-drawer__item"
+          onClick={() => updateTouchSettings({ enabled: !touchEnabled })}
+        >
+          <Text className="options-drawer__icon">🎮</Text>
+          <Text className="options-drawer__label">Touch Controls</Text>
+          {touchEnabled ? <Text className="options-drawer__check">✓</Text> : null}
+        </Button>
+        <Button variant="bare" className="options-drawer__item" onClick={handleEditLayout}>
+          <Text className="options-drawer__icon">📐</Text>
+          <Text className="options-drawer__label">Edit Touch Layout</Text>
         </Button>
       </Box>
       <Box className="options-drawer__list">

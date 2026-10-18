@@ -100,7 +100,9 @@ const pollFrame = (m: InputManager): void => {
   const windowFocused = inputEligible();
 
   if (windowFocused && !m.pauseManager.isPaused && !m.inputSuppressed) {
-    const mask = computeBitmask(m.keyStates, m.keyboardMap, m.gamepadButtonMap, m.gamepadAxisMap, m.hidStates, m.allowed);
+    const mask =
+      computeBitmask(m.keyStates, m.keyboardMap, m.gamepadButtonMap, m.gamepadAxisMap, m.hidStates, m.allowed) |
+      m.touchMask;
     m.setInputFn?.(mask);
   }
 

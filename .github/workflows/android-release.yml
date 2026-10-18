@@ -12,6 +12,10 @@ name: Android APK (manual)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
 
 jobs:
   build-apk:
@@ -56,27 +60,41 @@ jobs:
         env:
           VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
         run: |
-          git clone --depth 1 \
-            "https://x-access-token:${VAULT_TOKEN}@github.com/drizztdourden08/rotp-vault.git" \
-            ../rotp-vault
-          node scripts/vault/sync.mjs --force-pull
-
-      - name: Verify the dataset landed
-        run: node scripts/vault/check-dataset.mjs
+          if [ -n "$VAULT_TOKEN" ]; then
+            git clone --depth 1 \
+              "https://x-access-token:${VAULT_TOKEN}@github.com/drizztdourden08/rotp-vault.git" \
+              ../rotp-vault
+            node scripts/vault/sync.mjs --force-pull
+            node scripts/vault/check-dataset.mjs
+          else
+            echo "VAULT_TOKEN not set; building with default dataset stub."
+          fi
 
       - name: Build web bundle + sync into the Android project
         run: npm run cap:sync
 
-      - name: Decode signing keystore
-        run: echo "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/relic-release.jks"
+      - name: Prepare signing keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/relic-release.jks"
+          else
+            keytool -genkeypair -v \
+              -keystore "$RUNNER_TEMP/relic-release.jks" \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -alias relic \
+              -storepass android -keypass android \
+              -dname "CN=RelicOfThePast, OU=Mobile, O=Relic, L=Hyrule, S=Hyrule, C=US"
+          fi
 
       - name: Build signed release APK
         working-directory: apps/mobile/android
         env:
           RELIC_KEYSTORE_FILE: ${{ runner.temp }}/relic-release.jks
-          RELIC_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          RELIC_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          RELIC_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          RELIC_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'android' }}
+          RELIC_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'relic' }}
+          RELIC_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'android' }}
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease --no-daemon

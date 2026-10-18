@@ -9,6 +9,7 @@
 import type { DetectedDevice, InputProfile, SnesButton } from '@shared/types/controls';
 import { getBindingIconUrl, getBindingLabel } from './binding-display';
 import { getSnesIconUrl } from './button-icons';
+import { getInputManager } from './input-manager';
 import { padHex } from './profile-devices';
 import { resolveIconByVidPid } from './profile-utils';
 
@@ -23,6 +24,10 @@ const liveSdlType = (vid: string, pid: string, devices: DetectedDevice[]): strin
     && padHex(d.vendorId) === vid && padHex(d.productId) === pid)?.sdlType ?? null;
 
 const snesButtonGlyph = (profile: InputProfile | null, snes: SnesButton, devices: DetectedDevice[]): ButtonGlyph => {
+  const hasGamepad = devices.some((d) => d.type === 'gamepad' && d.connected);
+  if (!hasGamepad && getInputManager().isTouchActive()) {
+    return { src: getSnesIconUrl(snes), label: snes };
+  }
   const mapping = profile?.mappings.find((m) => m.snesButton === snes);
   const binding = mapping?.binding;
   if (!mapping || !binding || binding.type === 'none') return { src: getSnesIconUrl(snes), label: snes };

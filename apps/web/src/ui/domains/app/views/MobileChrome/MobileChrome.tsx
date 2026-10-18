@@ -42,6 +42,8 @@ const MobileChrome = (props: MobileChromeProps) => {
         showFps={!!props.showFps && props.gameRunning}
         isMuted={!!props.isMuted}
         onToggleMute={props.onToggleMute}
+        onCloseDrawer={closeOptions}
+        onClosePage={props.onClosePage}
       />
     </Drawer>
   );

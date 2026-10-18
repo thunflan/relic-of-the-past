@@ -1,4 +1,0 @@
-<!-- Adicionar em apps/mobile/android/app/src/main/AndroidManifest.xml, dentro de <manifest> -->
-<uses-permission android:name="android.permission.VIBRATE" />
-<!-- Opcional, dentro da <activity> principal, para jogar deitado e em pé: -->
-<!-- android:screenOrientation="fullUser" -->

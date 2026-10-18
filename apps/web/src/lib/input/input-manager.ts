@@ -15,6 +15,7 @@
 
 import type { InputProfile, SnesButton, FunctionMapping, FunctionAction } from '@shared/types/controls';
 import type { DetectedDevice } from '@shared/types/controls';
+import { SNES_BUTTON_BITS } from '@shared/types/controls';
 import type { DeviceEntry } from '@shared/ipc';
 import { controllerInputStore } from './controller-input-store';
 import type { ControllerInputState } from './controller-input-store';
@@ -46,6 +47,8 @@ class InputManager {
   persistActiveProfileId: ((id: string) => void) | null = null;
   keyStates = new Map<string, boolean>();
   allPressedKeys = new Set<string>();
+  touchMask = 0;
+  touchActive = false;
   animFrameId: number | null = null;
   setInputFn: ((mask: number) => void) | null = null;
   running = false;
@@ -116,70 +119,55 @@ class InputManager {
       for (const key of this.keyStates.keys()) {
         this.keyStates.set(key, false);
       }
+      this.touchMask = 0;
       this.setInputFn?.(0);
     }
   }
 
-  isInputSuppressed(): boolean {
-    return this.inputSuppressed;
+  isInputSuppressed(): boolean { return this.inputSuppressed; }
+
+  setTouchButton(button: SnesButton, pressed: boolean): void {
+    const bit = 1 << SNES_BUTTON_BITS[button];
+    this.touchMask = pressed ? (this.touchMask | bit) : (this.touchMask & ~bit);
   }
 
-  setWasmBridge(fn: (mask: number) => void): void {
-    this.setInputFn = fn;
+  clearTouchInput(): void { this.touchMask = 0; }
+
+  setTouchActive(active: boolean): void {
+    this.touchActive = active;
+    if (active && this.pauseManager.isPaused && this.pauseManager.controllerName !== 'Manual pause') {
+      this.pauseManager.resume();
+    }
   }
+
+  isTouchActive(): boolean { return this.touchActive; }
+
+  setWasmBridge(fn: (mask: number) => void): void { this.setInputFn = fn; }
 
   setProfile(profile: InputProfile): void {
     this.activeProfile = profile;
     rebuildMaps(this);
   }
 
-  getProfile(): InputProfile | null {
-    return this.activeProfile;
-  }
-
-  getProfiles(): InputProfile[] {
-    return this.profiles;
-  }
-
-  setProfiles(profiles: InputProfile[]): void {
-    setProfilesImpl(this, profiles);
-  }
+  getProfile(): InputProfile | null { return this.activeProfile; }
+  getProfiles(): InputProfile[] { return this.profiles; }
+  setProfiles(profiles: InputProfile[]): void { setProfilesImpl(this, profiles); }
 
   /** Wire persistence of the active profile id (survives app restart). */
-  setActiveProfilePersist(fn: (id: string) => void): void {
-    this.persistActiveProfileId = fn;
-  }
+  setActiveProfilePersist(fn: (id: string) => void): void { this.persistActiveProfileId = fn; }
+  onActiveProfileChange(listener: ActiveProfileListener): () => void { return subscribeActiveProfile(this, listener); }
+  cycleActiveProfile(direction: 1 | -1): void { cycleActiveProfileImpl(this, direction); }
 
-  onActiveProfileChange(listener: ActiveProfileListener): () => void {
-    return subscribeActiveProfile(this, listener);
-  }
+  setFunctionMappings(mappings: FunctionMapping[]): void { this.functionActions.setMappings(mappings); }
+  getFunctionMappings(): FunctionMapping[] { return this.functionActions.getMappings(); }
+  onFunctionAction(action: FunctionAction, callback: () => void): () => void { return this.functionActions.onAction(action, callback); }
+  onFunctionKeyUp(listener: (action: FunctionAction) => void): () => void { return this.functionActions.onKeyUp(listener); }
 
-  cycleActiveProfile(direction: 1 | -1): void {
-    cycleActiveProfileImpl(this, direction);
-  }
-
-  setFunctionMappings(mappings: FunctionMapping[]): void {
-    this.functionActions.setMappings(mappings);
-  }
-
-  getFunctionMappings(): FunctionMapping[] {
-    return this.functionActions.getMappings();
-  }
-
-  onFunctionAction(action: FunctionAction, callback: () => void): () => void {
-    return this.functionActions.onAction(action, callback);
-  }
-
-  onFunctionKeyUp(listener: (action: FunctionAction) => void): () => void {
-    return this.functionActions.onKeyUp(listener);
-  }
-
-  isPaused(): boolean {
-    return this.pauseManager.isPaused;
-  }
+  isPaused(): boolean { return this.pauseManager.isPaused; }
 
   /** Pause if a device the active profile maps is missing (disconnect / startup / state-load). */
   checkControllerPresence(): void {
+    if (this.touchActive) return;
     this.pauseManager.checkControllerDisconnect(this.activeProfile, connectedGamepadKeys(this), this.devices);
   }
 
@@ -190,63 +178,34 @@ class InputManager {
 
   /** Re-check presence after the active profile changes (pause or resume as needed). */
   reevaluateControllerPresence(): void {
+    if (this.touchActive) return;
     this.pauseManager.reevaluateForProfile(this.activeProfile, connectedGamepadKeys(this), this.devices);
   }
 
-  resume(): void {
-    this.pauseManager.resume();
-  }
-
-  togglePause(): void {
-    this.pauseManager.togglePause();
-  }
-
-  onPauseChange(listener: PauseListener): () => void {
-    return this.pauseManager.subscribe(listener);
-  }
-
-  onRawInput(listener: RawInputListener): () => void {
-    return this.rawDispatcher.subscribe(listener);
-  }
+  resume(): void { this.pauseManager.resume(); }
+  togglePause(): void { this.pauseManager.togglePause(); }
+  onPauseChange(listener: PauseListener): () => void { return this.pauseManager.subscribe(listener); }
+  onRawInput(listener: RawInputListener): () => void { return this.rawDispatcher.subscribe(listener); }
 
   onInputState(listener: InputStateListener): () => void {
     this.stateListeners.add(listener);
     return () => this.stateListeners.delete(listener);
   }
 
-  getDevices(): DetectedDevice[] {
-    return this.devices;
-  }
+  getDevices(): DetectedDevice[] { return this.devices; }
 
   onDeviceChange(listener: DeviceChangeListener): () => void {
     this.deviceListeners.add(listener);
     return () => this.deviceListeners.delete(listener);
   }
 
-  getHidStates(): Map<string, ControllerInputState> {
-    return this.currentHidStates;
-  }
+  getHidStates(): Map<string, ControllerInputState> { return this.currentHidStates; }
+  getPressedKeys(): Set<string> { return this.allPressedKeys; }
+  isHidConnected(): boolean { return controllerInputStore.isConnected(); }
 
-  getPressedKeys(): Set<string> {
-    return this.allPressedKeys;
-  }
-
-  isHidConnected(): boolean {
-    return controllerInputStore.isConnected();
-  }
-
-
-  start(): void {
-    startInput(this);
-  }
-
-  stop(): void {
-    stopInput(this);
-  }
-
-  refreshDevices(): void {
-    refreshDevicesImpl(this);
-  }
+  start(): void { startInput(this); }
+  stop(): void { stopInput(this); }
+  refreshDevices(): void { refreshDevicesImpl(this); }
 }
 
 

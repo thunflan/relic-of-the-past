@@ -25,7 +25,8 @@ import type { Section } from '../../compounds/SettingsLayout';
 import type { SyncedRateStatus } from '@shared/types/display';
 import type { ProfileHubTab } from './ProfileHub.type';
 import { buildDisplaySection, buildCameraSection } from './sub-components/SettingsView.display';
-import { buildWindowSection, buildPerformanceSection, RENDERING_SECTION, ENHANCEMENTS_SECTION, MOBILE_SECTION } from './sub-components/SettingsView.constants';
+import { buildWindowSection, buildPerformanceSection, RENDERING_SECTION, ENHANCEMENTS_SECTION } from './sub-components/SettingsView.constants';
+import { MOBILE_SECTIONS } from './sub-components/mobile-settings-sections';
 import { APPEARANCE_SECTION } from './sub-components/graphics-settings-sections';
 import { SECTIONS as AUDIO_SECTIONS } from './sub-components/audio-settings-sections';
 import { SECTIONS as GAMEPLAY_SECTIONS } from './sub-components/gameplay-settings-sections';
@@ -80,7 +81,7 @@ const PROFILE_HUB_TABS: Record<ProfileHubTab, ProfileHubTabSpec> = {
   controls: { icon: '⌨️', navIcon: keyboardIcon, label: 'Controls' },
   haptics: { icon: '📳', navIcon: vibrateIcon, label: 'Haptics', sections: () => HAPTICS_SECTIONS },
   developer: { icon: '🛠️', navIcon: wrenchIcon, label: 'Contributing', sections: () => DEVELOPER_SECTIONS },
-  mobile: { icon: '📱', navIcon: phoneIcon, label: 'Mobile', sections: () => [MOBILE_SECTION], mobileOnly: true },
+  mobile: { icon: '📱', navIcon: phoneIcon, label: 'Mobile', sections: () => MOBILE_SECTIONS, mobileOnly: true },
 };
 
 /** The nav's groups, in order. Home is not in a group; it is pinned above them. */
