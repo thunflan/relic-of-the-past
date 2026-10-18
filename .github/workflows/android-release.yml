@@ -48,6 +48,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Fetch the pinned SDL3 source
+        run: node scripts/build/fetch-sdl3.mjs
+
       - name: Build WASM core
         # emcc is on PATH here (setup-emsdk), so the shared build script runs directly
         # and writes into apps/web/public/wasm, which is where cap:sync picks it up for the APK.
